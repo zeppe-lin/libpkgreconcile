@@ -6,3 +6,7 @@ option('link_mode', type: 'combo', choices: ['shared', 'static'],
        description: 'How libpkgreconcile links external dependencies')
 option('tests', type: 'feature', value: 'enabled',
        description: 'Build and run tests')
+option('tools', type: 'feature', value: 'enabled',
+       description: 'Build reference command-line tools')
+option('install_tools', type: 'boolean', value: false,
+       description: 'Install reference command-line tools')

@@ -33,6 +33,10 @@ liblinediff_dep = dependency(
 )
 
 pkgconf = import('pkgconfig')
+
+if get_option('install_tools') and get_option('tools').disabled()
+  error('install_tools requires tools to be enabled')
+endif
 public_inc = include_directories('include')
 private_inc = include_directories('src')
 
@@ -78,6 +82,9 @@ pkgconf.generate(
   requires: ['liblinediff >= 0.1.0'],
 )
 
+if get_option('tools').allowed()
+  subdir('tools')
+endif
 if get_option('tests').allowed()
   subdir('tests')
 endif

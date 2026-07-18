@@ -52,3 +52,23 @@ if library_kind == 'shared'
     args: [files('test_symbols.py'), libpkgreconcile.full_path()],
   )
 endif
+
+if get_option('tools').allowed()
+  terminal_test = executable(
+    'test-terminal',
+    [
+      'test_terminal.cpp',
+      '../tools/terminal.cpp',
+    ],
+    include_directories: include_directories('../tools'),
+    dependencies: [libpkgreconcile_dep, liblinediff_dep],
+  )
+  test('exercise reference terminal workflow', terminal_test)
+
+  test(
+    'exercise rejmerge command line',
+    python,
+    args: [files('test_cli.py'), rejmerge],
+    timeout: 120,
+  )
+endif
