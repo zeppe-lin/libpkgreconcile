@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Alexandr Savca
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+option('link_mode', type: 'combo', choices: ['shared', 'static'],
+       value: 'shared',
+       description: 'How libpkgreconcile links external dependencies')
+option('tests', type: 'feature', value: 'enabled',
+       description: 'Build and run tests')
