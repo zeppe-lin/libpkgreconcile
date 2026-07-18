@@ -1,0 +1,165 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc-shared
+            compiler: g++
+            default_library: shared
+            link_mode: shared
+          - name: gcc-static
+            compiler: g++
+            default_library: static
+            link_mode: static
+          - name: clang-shared
+            compiler: clang++
+            default_library: shared
+            link_mode: shared
+          - name: clang-static
+            compiler: clang++
+            default_library: static
+            link_mode: static
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ clang ninja-build pkg-config python3 python3-pip
+          python3 -m pip install --user --break-system-packages 'meson>=1.6,<2'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build liblinediff
+        env:
+          CXX: ${{ matrix.compiler }}
+        run: |
+          git clone https://github.com/zeppe-lin/liblinediff.git
+          git -C liblinediff checkout 5606f9c4001c43b86262ec1c80eca49a06f0a610
+          meson setup liblinediff/build \
+            --prefix="$RUNNER_TEMP/deps" \
+            --libdir=lib \
+            -Ddefault_library=${{ matrix.default_library }} \
+            -Dlink_mode=${{ matrix.link_mode }} \
+            -Dtests=disabled \
+            -Dman_pages=disabled \
+            -Dwerror=true
+          meson compile -C liblinediff/build
+          meson install -C liblinediff/build
+
+      - name: Configure
+        env:
+          CXX: ${{ matrix.compiler }}
+          PKG_CONFIG_PATH: ${{ runner.temp }}/deps/lib/pkgconfig
+        run: |
+          meson setup build \
+            -Ddefault_library=${{ matrix.default_library }} \
+            -Dlink_mode=${{ matrix.link_mode }} \
+            -Dman_pages=disabled \
+            -Dwerror=true
+
+      - name: Build
+        run: meson compile -C build
+
+      - name: Test
+        env:
+          LD_LIBRARY_PATH: ${{ runner.temp }}/deps/lib
+        run: meson test -C build --print-errorlogs
+
+  sanitizers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ ninja-build pkg-config python3 python3-pip
+          python3 -m pip install --user --break-system-packages 'meson>=1.6,<2'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build liblinediff
+        env:
+          CXX: g++
+        run: |
+          git clone https://github.com/zeppe-lin/liblinediff.git
+          git -C liblinediff checkout 5606f9c4001c43b86262ec1c80eca49a06f0a610
+          meson setup liblinediff/build \
+            --prefix="$RUNNER_TEMP/deps" \
+            --libdir=lib \
+            -Dtests=disabled \
+            -Dman_pages=disabled \
+            -Db_sanitize=address,undefined \
+            -Db_lundef=false \
+            -Dwerror=true
+          meson compile -C liblinediff/build
+          meson install -C liblinediff/build
+
+      - name: Configure
+        env:
+          CXX: g++
+          PKG_CONFIG_PATH: ${{ runner.temp }}/deps/lib/pkgconfig
+        run: |
+          meson setup build \
+            -Dman_pages=disabled \
+            -Db_sanitize=address,undefined \
+            -Db_lundef=false \
+            -Dwerror=true
+
+      - name: Build and test
+        env:
+          LD_LIBRARY_PATH: ${{ runner.temp }}/deps/lib
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          meson compile -C build
+          meson test -C build --print-errorlogs
+
+  documentation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen g++ ninja-build pkg-config python3 python3-pip scdoc
+          python3 -m pip install --user --break-system-packages 'meson>=1.6,<2'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build liblinediff
+        run: |
+          git clone https://github.com/zeppe-lin/liblinediff.git
+          git -C liblinediff checkout 5606f9c4001c43b86262ec1c80eca49a06f0a610
+          meson setup liblinediff/build \
+            --prefix="$RUNNER_TEMP/deps" \
+            --libdir=lib \
+            -Dtests=disabled \
+            -Dman_pages=disabled
+          meson compile -C liblinediff/build
+          meson install -C liblinediff/build
+
+      - name: Build manuals
+        env:
+          PKG_CONFIG_PATH: ${{ runner.temp }}/deps/lib/pkgconfig
+        run: |
+          meson setup build -Dtests=disabled -Dman_pages=enabled
+          meson compile -C build
+
+      - name: Validate Doxygen
+        run: doxygen Doxyfile
