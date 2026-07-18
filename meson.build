@@ -85,6 +85,7 @@ pkgconf.generate(
 if get_option('tools').allowed()
   subdir('tools')
 endif
+subdir('man')
 if get_option('tests').allowed()
   subdir('tests')
 endif

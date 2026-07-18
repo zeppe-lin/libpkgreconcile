@@ -1,0 +1,83 @@
+REJMERGE(8)
+
+# NAME
+
+rejmerge - interactively resolve filesystem-staged package objects
+
+# SYNOPSIS
+
+*rejmerge* [*-hnv*] [*-r* _root-directory_]
+
+# DESCRIPTION
+
+*rejmerge* is the optional terminal frontend shipped with
+*libpkgreconcile*(3).
+
+It scans _/var/lib/pkg/rejected_, displays installed and staged differences,
+and requests an explicit disposition for each candidate.
+
+For paired objects, the frontend can keep installed contents, install staged
+contents, create a two-way conflict copy for editing, select metadata, or skip
+the candidate.
+
+For relics without an installed counterpart, it can restore, relocate, delete,
+or skip the staged object.
+
+# OPTIONS
+
+*-r* _root-directory_, *--root*=_root-directory_
+	Operate on an alternate target root. The installed tree and staging tree
+	are both interpreted below this root.
+
+*-n*, *--dry-run*
+	Inspect and display candidates without modifying either tree.
+
+*-v*, *--version*
+	Print the version and exit.
+
+*-h*, *--help*
+	Print usage and exit.
+
+# ENVIRONMENT
+
+*VISUAL*
+	Editor command. Used before *EDITOR* when set.
+
+*EDITOR*
+	Editor command used when *VISUAL* is unset. The fallback is _/bin/vi_.
+
+*PAGER*
+	Pager command used for differences. The fallback is _/bin/more_.
+
+*TMPDIR*
+	Directory used for temporary conflict copies. The fallback is _/tmp_.
+
+# FILES
+
+_/var/lib/pkg/rejected/_
+	Default mirrored staging tree.
+
+# EXIT STATUS
+
+*0*
+	All requested work completed.
+
+*1*
+	Command-line misuse, insufficient privileges, closed input, stale state,
+	or another operation failed.
+
+# CAVEATS
+
+Mutating operation requires superuser privileges. Dry-run may be executed by an
+unprivileged user when file permissions permit inspection.
+
+Conflict copies are literal two-way blocks. No common package ancestor is
+available to the frontend, so this is not a three-way merge.
+
+The command has no configuration-file interpreter.
+
+# SEE ALSO
+
+*libpkgreconcile*(3), *liblinediff*(3), *pkgadd*(8), *pkgman*(1)
+
+; vim: ft=scdoc

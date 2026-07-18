@@ -10,3 +10,5 @@ option('tools', type: 'feature', value: 'enabled',
        description: 'Build reference command-line tools')
 option('install_tools', type: 'boolean', value: false,
        description: 'Install reference command-line tools')
+option('man_pages', type: 'feature', value: 'auto',
+       description: 'Build manual pages with scdoc')

@@ -1,0 +1,132 @@
+LIBPKGRECONCILE(3)
+
+# NAME
+
+libpkgreconcile - inspect and resolve filesystem-staged package objects
+
+# SYNOPSIS
+
+```
+#include <libpkgreconcile/libpkgreconcile.h>
+
+pkgreconcile::filesystem_reconciler reconciler(options);
+std::vector<pkgreconcile::candidate> values = reconciler.scan();
+```
+
+# DESCRIPTION
+
+*libpkgreconcile* provides a C++17 interface for objects staged under
+_/var/lib/pkg/rejected_.
+
+The *filesystem_reconciler* maps staged objects to their paths in a selected
+installed root, classifies content and metadata differences, and provides
+explicit resolution operations.
+
+Scanning is read-only. Mutations occur only through a resolution method.
+
+# CANDIDATES
+
+A *candidate* is an immutable observation returned by *scan()*. It records:
+
+- the root-relative logical path;
+- installed and staged paths;
+- installed and staged metadata;
+- content and metadata equality;
+- text-mergeability; and
+- one semantic state.
+
+The states are:
+
+*duplicate*
+	Contents and applicable metadata are equal.
+
+*metadata_only*
+	Contents are equal but ownership or mode differs.
+
+*changed*
+	Comparable contents differ.
+
+*type_changed*
+	Installed and staged node types differ.
+
+*relic*
+	No installed counterpart exists.
+
+Candidates contain private filesystem fingerprints. Comparison and mutation
+fail with *pkgreconcile::stale_candidate_error* if the candidate belongs to a
+different reconciler or no longer matches live state.
+
+# COMPARISON
+
+*compare_text()* accepts paired regular files classified as text-mergeable and
+returns an owned *linediff::comparison*.
+
+The consumer may render that result with *liblinediff*(3). Presentation labels,
+unified-diff context, and conflict markers are not reconciliation policy.
+
+NUL-containing regular files are not text-mergeable. Other bytes, including
+invalid UTF-8, carriage returns, and missing final newlines, are preserved.
+
+# RESOLUTION
+
+Paired candidates support:
+
+*keep()*
+	Keep installed contents and remove the staged object.
+
+*install()*
+	Install staged contents at the installed path.
+
+*install_merged()*
+	Install caller-provided regular-file bytes through a same-directory
+	temporary file.
+
+Relics support:
+
+*restore()*
+	Restore the object to its original logical path.
+
+*relocate_relic()*
+	Move the object to another absolute logical path below the target root.
+
+*remove_relic()*
+	Delete the staged object explicitly.
+
+Metadata selection is independent from content disposition. The caller may
+retain installed metadata or adopt staged metadata.
+
+*cleanup_empty_directories()* removes empty real directories below the staging
+root and does not follow symbolic links.
+
+# FILES
+
+_/var/lib/pkg/rejected/_
+	Default mirrored staging tree.
+
+_/usr/include/libpkgreconcile/_
+	Installed C++ headers.
+
+_/usr/lib/pkgconfig/libpkgreconcile.pc_
+	pkg-config metadata.
+
+# ERRORS
+
+Semantic errors derive from *pkgreconcile::error*. Filesystem failures may
+also be reported as *std::system_error*. Invalid operation selection is
+reported as *std::invalid_argument*.
+
+# CAVEATS
+
+The library does not update the package database and does not provide atomicity
+across multiple candidates or a complete package transaction.
+
+A staged directory without an installed directory counterpart is treated as a
+structural directory and is not returned as a relic. The mirrored storage
+format does not identify whether such a directory is itself a rejected package
+object.
+
+# SEE ALSO
+
+*liblinediff*(3), *rejmerge*(8), *pkgadd*(8), *pkgman*(1)
+
+; vim: ft=scdoc
