@@ -4,9 +4,10 @@
 #ifndef LIBPKGRECONCILE_LIBPKGRECONCILE_H
 #define LIBPKGRECONCILE_LIBPKGRECONCILE_H
 
-#include <libpkgreconcile/candidate.h>
+#include <libpkgreconcile/visibility.h>
 #include <libpkgreconcile/error.h>
 #include <libpkgreconcile/types.h>
-#include <libpkgreconcile/visibility.h>
+#include <libpkgreconcile/candidate.h>
+#include <libpkgreconcile/filesystem_reconciler.h>
 
 #endif

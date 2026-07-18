@@ -1,6 +1,20 @@
 # SPDX-FileCopyrightText: 2026 Alexandr Savca
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+scan_test = executable(
+  'test-scan',
+  'test_scan.cpp',
+  dependencies: [libpkgreconcile_dep, liblinediff_dep],
+)
+test('scan filesystem staging tree', scan_test)
+
+actions_test = executable(
+  'test-actions',
+  'test_actions.cpp',
+  dependencies: [libpkgreconcile_dep, liblinediff_dep],
+)
+test('apply explicit dispositions', actions_test)
+
 header_test = executable(
   'test-header',
   [
@@ -9,7 +23,8 @@ header_test = executable(
     'header_error.cpp',
     'header_types.cpp',
     'header_candidate.cpp',
+    'header_filesystem_reconciler.cpp',
   ],
-  dependencies: libpkgreconcile_dep,
+  dependencies: [libpkgreconcile_dep, liblinediff_dep],
 )
-test('compile public model headers', header_test)
+test('compile public umbrella header', header_test)

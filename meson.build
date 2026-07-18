@@ -25,6 +25,13 @@ if (library_kind == 'static') != want_static
   error('default_library and link_mode must both select shared or static')
 endif
 
+liblinediff_dep = dependency(
+  'liblinediff',
+  version: '>=0.1.0',
+  required: true,
+  static: want_static,
+)
+
 pkgconf = import('pkgconfig')
 public_inc = include_directories('include')
 private_inc = include_directories('src')
@@ -34,8 +41,10 @@ libpkgreconcile = library(
   [
     'src/types.cpp',
     'src/candidate.cpp',
+    'src/filesystem_reconciler.cpp',
   ],
   include_directories: [public_inc, private_inc],
+  dependencies: liblinediff_dep,
   install: true,
   version: meson.project_version(),
   soversion: '0',
@@ -46,6 +55,7 @@ libpkgreconcile = library(
 libpkgreconcile_dep = declare_dependency(
   link_with: libpkgreconcile,
   include_directories: public_inc,
+  dependencies: liblinediff_dep,
 )
 meson.override_dependency('libpkgreconcile', libpkgreconcile_dep)
 
@@ -54,6 +64,7 @@ install_headers(
   'include/libpkgreconcile/error.h',
   'include/libpkgreconcile/types.h',
   'include/libpkgreconcile/candidate.h',
+  'include/libpkgreconcile/filesystem_reconciler.h',
   'include/libpkgreconcile/libpkgreconcile.h',
   subdir: 'libpkgreconcile',
 )
@@ -62,8 +73,9 @@ pkgconf.generate(
   libpkgreconcile,
   name: 'libpkgreconcile',
   filebase: 'libpkgreconcile',
-  description: 'Package object reconciliation model library',
+  description: 'Filesystem-staged package object reconciliation library',
   subdirs: '.',
+  requires: ['liblinediff >= 0.1.0'],
 )
 
 if get_option('tests').allowed()
