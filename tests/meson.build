@@ -15,6 +15,13 @@ actions_test = executable(
 )
 test('apply explicit dispositions', actions_test)
 
+compare_test = executable(
+  'test-compare',
+  'test_compare.cpp',
+  dependencies: [libpkgreconcile_dep, liblinediff_dep],
+)
+test('compare candidates with liblinediff', compare_test)
+
 header_test = executable(
   'test-header',
   [
