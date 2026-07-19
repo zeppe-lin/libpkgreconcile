@@ -48,17 +48,57 @@ class RejmergeCliTests(unittest.TestCase):
         installed.write_bytes(old)
         rejected.write_bytes(new)
 
+    @staticmethod
+    def kernel_effective_uid() -> int:
+        """Return the effective UID reported by the Linux kernel.
+
+        fakeroot interposes libc credential queries.  The procfs value remains
+        the real kernel credential and lets privilege tests decide whether a
+        child can be exercised outside the fakeroot environment.
+        """
+        try:
+            for line in Path("/proc/self/status").read_text().splitlines():
+                if line.startswith("Uid:"):
+                    return int(line.split()[2])
+        except (OSError, ValueError, IndexError):
+            pass
+        return os.geteuid()
+
+    @staticmethod
+    def fakeroot_active() -> bool:
+        preload = os.environ.get("LD_PRELOAD", "")
+        return "FAKEROOTKEY" in os.environ or "libfakeroot" in preload
+
+    @staticmethod
+    def without_fakeroot(environment: dict[str, str]) -> dict[str, str]:
+        """Remove fakeroot interposition while preserving unrelated preloads."""
+        clean = environment.copy()
+        preload = clean.get("LD_PRELOAD", "")
+        if preload:
+            entries = preload.replace(":", " ").split()
+            entries = [entry for entry in entries if "libfakeroot" not in entry]
+            if entries:
+                clean["LD_PRELOAD"] = ":".join(entries)
+            else:
+                clean.pop("LD_PRELOAD", None)
+        for name in ("FAKEROOTKEY", "FAKED_MODE", "FAKEROOT_FD_BASE"):
+            clean.pop(name, None)
+        return clean
+
     def run_cli(
         self,
         *arguments: str,
         input_text: str = "",
         env: dict[str, str] | None = None,
         demote: bool = False,
+        real_credentials: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         command = [str(self.binary), *arguments]
         child_env = os.environ.copy()
         if env is not None:
             child_env.update(env)
+        if real_credentials:
+            child_env = self.without_fakeroot(child_env)
 
         preexec_fn = None
         if demote and os.geteuid() == 0:
@@ -287,30 +327,51 @@ class RejmergeCliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("name with spaces", result.stdout)
 
+    def prepare_non_root_tree(self) -> None:
+        for path in [self.tempdir, self.tempdir / "etc", self.tempdir / "var",
+                     self.tempdir / "var/lib", self.tempdir / "var/lib/pkg",
+                     self.rejected, self.rejected / "etc"]:
+            if path.exists():
+                os.chmod(path, 0o755)
+        installed = self.tempdir / "etc/a.conf"
+        staged = self.rejected / "etc/a.conf"
+        if installed.exists():
+            os.chmod(installed, 0o644)
+        if staged.exists():
+            os.chmod(staged, 0o644)
+
+    def non_root_execution(self) -> tuple[bool, bool]:
+        """Return demotion and real-credential flags for privilege tests."""
+        if self.kernel_effective_uid() != 0:
+            return False, True
+        if self.fakeroot_active():
+            self.skipTest(
+                "fakeroot masks demotion when the kernel runner is root"
+            )
+        return True, False
+
     def test_non_root_dry_run_allowed(self) -> None:
-        if os.geteuid() != 0:
-            self.skipTest("already running without root privileges")
         self.write_pair("etc/a.conf", b"old\n", b"new\n")
-        for path in [self.tempdir, self.tempdir / "etc", self.rejected,
-                     self.rejected / "etc"]:
-            os.chmod(path, 0o755)
-        os.chmod(self.tempdir / "etc/a.conf", 0o644)
-        os.chmod(self.rejected / "etc/a.conf", 0o644)
+        self.prepare_non_root_tree()
+        demote, real_credentials = self.non_root_execution()
         result = self.run_cli(
-            "--dry-run", "--root", str(self.tempdir), demote=True
+            "--dry-run",
+            "--root",
+            str(self.tempdir),
+            demote=demote,
+            real_credentials=real_credentials,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_non_root_mutation_rejected(self) -> None:
-        if os.geteuid() != 0:
-            result = self.run_cli("--root", str(self.tempdir))
-        else:
-            os.chmod(self.tempdir, 0o755)
-            os.chmod(self.tempdir / "var", 0o755)
-            os.chmod(self.tempdir / "var/lib", 0o755)
-            os.chmod(self.tempdir / "var/lib/pkg", 0o755)
-            os.chmod(self.rejected, 0o755)
-            result = self.run_cli("--root", str(self.tempdir), demote=True)
+        self.prepare_non_root_tree()
+        demote, real_credentials = self.non_root_execution()
+        result = self.run_cli(
+            "--root",
+            str(self.tempdir),
+            demote=demote,
+            real_credentials=real_credentials,
+        )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("only root", result.stderr)
 
