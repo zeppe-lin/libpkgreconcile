@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
 
+env:
+  LIBLINEDIFF_REF: v0.2.0
+
 jobs:
   build:
     strategy:
@@ -48,7 +51,7 @@ jobs:
           CXX: ${{ matrix.compiler }}
         run: |
           git clone https://github.com/zeppe-lin/liblinediff.git
-          git -C liblinediff checkout 5606f9c4001c43b86262ec1c80eca49a06f0a610
+          git -C liblinediff checkout "$LIBLINEDIFF_REF"
           meson setup liblinediff/build \
             --prefix="$RUNNER_TEMP/deps" \
             --libdir=lib \
@@ -97,7 +100,7 @@ jobs:
           CXX: g++
         run: |
           git clone https://github.com/zeppe-lin/liblinediff.git
-          git -C liblinediff checkout 5606f9c4001c43b86262ec1c80eca49a06f0a610
+          git -C liblinediff checkout "$LIBLINEDIFF_REF"
           meson setup liblinediff/build \
             --prefix="$RUNNER_TEMP/deps" \
             --libdir=lib \
@@ -145,7 +148,7 @@ jobs:
       - name: Build liblinediff
         run: |
           git clone https://github.com/zeppe-lin/liblinediff.git
-          git -C liblinediff checkout 5606f9c4001c43b86262ec1c80eca49a06f0a610
+          git -C liblinediff checkout "$LIBLINEDIFF_REF"
           meson setup liblinediff/build \
             --prefix="$RUNNER_TEMP/deps" \
             --libdir=lib \

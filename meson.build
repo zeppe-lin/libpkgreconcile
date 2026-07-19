@@ -27,7 +27,7 @@ endif
 
 liblinediff_dep = dependency(
   'liblinediff',
-  version: '>=0.1.0',
+  version: '>=0.2.0',
   required: true,
   static: want_static,
 )
@@ -79,7 +79,7 @@ pkgconf.generate(
   filebase: 'libpkgreconcile',
   description: 'Filesystem-staged package object reconciliation library',
   subdirs: '.',
-  requires: ['liblinediff >= 0.1.0'],
+  requires: ['liblinediff >= 0.2.0'],
 )
 
 if get_option('tools').allowed()
