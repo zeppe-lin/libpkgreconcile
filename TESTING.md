@@ -13,7 +13,7 @@ The suite keeps independent layers for:
 * explicit paired and relic dispositions;
 * `liblinediff` integration and exact-byte ownership;
 * stale-observation rejection;
-* terminal workflow policy; and
+* terminal workflow policy;
 * black-box executable behavior; and
 * shared-library symbol-boundary enforcement.
 
@@ -24,13 +24,14 @@ postcondition checks on both installed and staged paths.
 Current suite
 -------------
 
-The C++ suites contain 94 named cases:
+The C++ suites contain 102 named cases:
 
 * 26 scan and classification cases;
 * 29 disposition and cleanup cases;
 * 9 `liblinediff` integration cases;
-* 10 stale-candidate cases; and
-* 20 terminal workflow cases.
+* 10 stale-candidate cases;
+* 7 semantic ANSI and color-policy cases; and
+* 21 terminal workflow cases.
 
 The comparison suite additionally generates 2,000 deterministic text pairs.
 For every pair it checks that:
@@ -39,9 +40,15 @@ For every pair it checks that:
 * applying the edit script reconstructs the staged bytes; and
 * identity classification agrees with byte equality.
 
-The Python suite contains 12 black-box CLI cases covering option parsing,
+The Python suite contains 20 black-box CLI cases covering option parsing,
 strict dry-run immutability, binary output, hostile PATH contents, pathnames
-with spaces, and privilege boundaries.
+with spaces, privilege boundaries, redirected color modes, `NO_COLOR`, and
+real pseudo-terminal detection.
+
+The color suite verifies semantic record styling, exact reset placement before
+LF and CRLF endings, plain-renderer identity, context neutrality, NUL-byte
+preservation, and the automatic/always/never policy matrix. Terminal tests also
+prove that ANSI display state never enters an installed conflict copy.
 
 Every public header is compiled in an independent translation unit, and the
 umbrella header is compiled as an unrelated client. Shared builds also inspect

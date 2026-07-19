@@ -87,7 +87,7 @@ Build-time requirements:
 * Meson 1.6.0 or later;
 * Ninja;
 * pkg-config; and
-* `liblinediff` 0.1.0 or later.
+* `liblinediff` 0.2.0 or later.
 
 Python 3 is required for black-box command tests. Doxygen and `scdoc` are
 optional documentation dependencies.
@@ -140,8 +140,17 @@ meson setup build-no-tools -Dtools=disabled
 meson setup build-install-tools -Dinstall_tools=true
 ```
 
-The frontend reads `VISUAL`, `EDITOR`, `PAGER`, and `TMPDIR`. It has no
-configuration-file interpreter. Dry-run mode is strictly non-mutating.
+The frontend reads `VISUAL`, `EDITOR`, `PAGER`, `TMPDIR`, and `NO_COLOR`. It
+has no configuration-file interpreter. Dry-run mode is strictly non-mutating.
+
+Unified differences support `--color=auto`, `--color=always`, and
+`--color=never`. Automatic mode colors direct terminal output, honors a
+non-empty `NO_COLOR`, and leaves paged output plain because arbitrary pager
+capabilities are not guessed. `--color=always` is the explicit override for a
+color-capable pager or redirected ANSI output.
+
+Color is terminal presentation only. Conflict copies passed to an editor or
+installed through `install_merged()` contain no ANSI bytes.
 
 The tool is a reference and compatibility client. The library is the project
 interface.

@@ -130,7 +130,9 @@ Mutation safety
 ---------------
 
 Every disposition validates candidate mapping and current fingerprints before
-mutation. Relic restore and relocation use `renameat2(RENAME_NOREPLACE)` so a destination appearing after validation is not overwritten.
+mutation. Relic restore and relocation use
+`renameat2(RENAME_NOREPLACE)` so a destination appearing after validation is
+not overwritten.
 Same-filesystem renames are preferred; regular files and symlinks have an
 explicit cross-filesystem copy fallback.
 
@@ -145,8 +147,18 @@ The `rejmerge` executable is a small terminal client. It owns:
 
 * prompts;
 * pager and editor execution;
-* unified and conflict rendering through `liblinediff`; and
+* semantic unified-diff styling through `liblinediff`;
+* plain conflict rendering; and
 * root privilege checks for mutating operation.
 
-It does not add configuration-language hooks or hidden filesystem policy to
-the library.
+ANSI styling consumes `linediff::unified_record_kind`; it does not parse
+completed diff prefixes. Automatic color applies only to direct terminal
+output and honors `NO_COLOR`. Paged output remains plain unless color is
+explicitly forced because the frontend does not infer arbitrary pager
+capabilities.
+
+Conflict copies are persistent candidate content, not terminal presentation.
+They remain plain regardless of color mode before editing or installation.
+
+The frontend does not add configuration-language hooks or hidden filesystem
+policy to the library.

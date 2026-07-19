@@ -1,5 +1,5 @@
 PROJECT_NAME           = libpkgreconcile
-PROJECT_NUMBER         = 0.1.0
+PROJECT_NUMBER         = 0.2.0
 PROJECT_BRIEF          = "Filesystem-staged package reconciliation library"
 OUTPUT_DIRECTORY       = build/docs
 CREATE_SUBDIRS         = NO

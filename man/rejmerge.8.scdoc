@@ -6,7 +6,7 @@ rejmerge - interactively resolve filesystem-staged package objects
 
 # SYNOPSIS
 
-*rejmerge* [*-hnv*] [*-r* _root-directory_]
+*rejmerge* [*-hnv*] [*-r* _root-directory_] [*--color*=_when_]
 
 # DESCRIPTION
 
@@ -32,6 +32,11 @@ or skip the staged object.
 *-n*, *--dry-run*
 	Inspect and display candidates without modifying either tree.
 
+*--color*=_when_
+	Control ANSI styling of unified differences. _when_ is *auto*, *always*,
+	or *never*. Automatic mode colors direct terminal output and leaves paged
+	or redirected output plain.
+
 *-v*, *--version*
 	Print the version and exit.
 
@@ -51,6 +56,10 @@ or skip the staged object.
 
 *TMPDIR*
 	Directory used for temporary conflict copies. The fallback is _/tmp_.
+
+*NO_COLOR*
+	A non-empty value disables automatic color. An explicit
+	*--color*=*always* overrides it.
 
 # FILES
 
@@ -73,6 +82,12 @@ unprivileged user when file permissions permit inspection.
 
 Conflict copies are literal two-way blocks. No common package ancestor is
 available to the frontend, so this is not a three-way merge.
+
+Automatic mode does not infer whether an arbitrary pager preserves ANSI
+sequences. Use *--color*=*always* only with a color-capable pager.
+
+Color applies to displayed unified differences only. Conflict copies passed to
+an editor or installed remain plain.
 
 The command has no configuration-file interpreter.
 

@@ -23,8 +23,19 @@ Configuration
 could replace internal functions. The library exposes one documented C++
 contract instead.
 
-`VISUAL`, `EDITOR`, `PAGER`, and `TMPDIR` remain frontend environment
-controls. The `-c` and `--config` options are absent.
+`VISUAL`, `EDITOR`, `PAGER`, `TMPDIR`, and `NO_COLOR` remain frontend
+environment controls. The `-c` and `--config` options are absent.
+
+Color display
+-------------
+
+The reference frontend accepts `--color=auto`, `--color=always`, and
+`--color=never`. Automatic mode colors direct terminal output, honors a
+non-empty `NO_COLOR`, and leaves pager output plain. Explicit `always` mode is
+required when ANSI output is desired through a pager or redirection.
+
+Color affects displayed unified differences only. Conflict copies and edited
+content remain plain bytes.
 
 Dry-run
 -------

@@ -161,7 +161,7 @@ class RejmergeCliTests(unittest.TestCase):
     def test_version(self) -> None:
         result = self.run_cli("--version")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertRegex(result.stdout, r"^rejmerge 0\.1\.0\n$")
+        self.assertRegex(result.stdout, r"^rejmerge 0\.2\.0\n$")
 
     def test_unknown_config_option_is_rejected(self) -> None:
         result = self.run_cli("--config", "/tmp/rejmerge.conf")
