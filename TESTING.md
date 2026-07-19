@@ -43,7 +43,9 @@ For every pair it checks that:
 The Python suite contains 20 black-box CLI cases covering option parsing,
 strict dry-run immutability, binary output, hostile PATH contents, pathnames
 with spaces, privilege boundaries, redirected color modes, `NO_COLOR`, and
-real pseudo-terminal detection.
+real pseudo-terminal detection.  Privilege cases remove fakeroot interposition
+from the tested child so package builds verify the kernel credentials rather
+than fakeroot's synthetic effective UID.
 
 The color suite verifies semantic record styling, exact reset placement before
 LF and CRLF endings, plain-renderer identity, context neutrality, NUL-byte
