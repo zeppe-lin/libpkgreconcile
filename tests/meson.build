@@ -54,10 +54,22 @@ if library_kind == 'shared'
 endif
 
 if get_option('tools').allowed()
+  color_test = executable(
+    'test-color',
+    [
+      'test_color.cpp',
+      '../tools/color.cpp',
+    ],
+    include_directories: include_directories('../tools'),
+    dependencies: [libpkgreconcile_dep, liblinediff_dep],
+  )
+  test('render semantic terminal colors', color_test)
+
   terminal_test = executable(
     'test-terminal',
     [
       'test_terminal.cpp',
+      '../tools/color.cpp',
       '../tools/terminal.cpp',
     ],
     include_directories: include_directories('../tools'),

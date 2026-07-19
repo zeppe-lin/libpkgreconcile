@@ -110,6 +110,17 @@ int main() {
     TEST_CHECK_EQ(mode(root.rejected("etc/a.conf")), mode_t{0600});
     TEST_CHECK(result.output.find("-old\n+new\n") != std::string::npos);
   });
+  tests.run("dry-run always colorizes semantic diff records", [] {
+    test_root root;
+    prepare_changed(root);
+    pkgreconcile::tool::run_options options = options_for(root, true);
+    options.color = pkgreconcile::tool::color_mode::always;
+    const terminal_result result = run_with_input(options, "");
+    TEST_CHECK(result.output.find("\x1b[31m-old\x1b[0m\n") !=
+               std::string::npos);
+    TEST_CHECK(result.output.find("\x1b[32m+new\x1b[0m\n") !=
+               std::string::npos);
+  });
   tests.run("dry-run relic is immutable", [] {
     test_root root;
     write_file(root.rejected("etc/relic"), "preserved\n");
@@ -146,14 +157,19 @@ int main() {
     TEST_CHECK_EQ(read_file(root.rejected("etc/a.conf")), std::string("new\n"));
     TEST_CHECK_EQ(result.summary.skipped, 1U);
   });
-  tests.run("merge and install", [] {
+  tests.run("merge and install never persists terminal color", [] {
     test_root root;
     prepare_changed(root);
-    const terminal_result result = run_with_input(options_for(root), "M\nI\n");
+    pkgreconcile::tool::run_options options = options_for(root);
+    options.color = pkgreconcile::tool::color_mode::always;
+    const terminal_result result = run_with_input(options, "M\nI\n");
     const std::string installed = read_file(root.installed("etc/a.conf"));
     TEST_CHECK(installed.find("<<<<<<< ") == 0U);
     TEST_CHECK(installed.find("=======\nnew\n") != std::string::npos);
+    TEST_CHECK(installed.find('\x1b') == std::string::npos);
     TEST_CHECK(!fs::exists(root.rejected("etc/a.conf")));
+    TEST_CHECK(result.output.find("\x1b[31m-old\x1b[0m\n") !=
+               std::string::npos);
     TEST_CHECK(result.output.find("1 merge conflict(s)") != std::string::npos);
   });
   tests.run("merge edit and install", [] {

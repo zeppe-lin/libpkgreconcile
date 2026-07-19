@@ -5,6 +5,7 @@ rejmerge = executable(
   'rejmerge',
   [
     'main.cpp',
+    'color.cpp',
     'terminal.cpp',
   ],
   cpp_args: ['-DREJMERGE_VERSION="' + meson.project_version() + '"'],

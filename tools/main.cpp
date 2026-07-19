@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <optional>
+#include <string_view>
 
 #include <getopt.h>
 #include <unistd.h>
@@ -22,12 +24,28 @@
 namespace {
 
 void usage(std::ostream& output) {
-  output << "Usage: rejmerge [-hnv] [-r root-dir]\n"
+  output << "Usage: rejmerge [-hnv] [-r root-dir] [--color=when]\n"
             "Inspect and resolve staged package files.\n\n"
             "  -r, --root=root-dir  use an alternate root directory\n"
             "  -n, --dry-run        inspect and show differences only\n"
+            "      --color=when     color diffs: auto, always, never\n"
             "  -v, --version        print version and exit\n"
             "  -h, --help           print this help and exit\n";
+}
+
+std::optional<pkgreconcile::tool::color_mode>
+parse_color_mode(std::string_view value) {
+  using pkgreconcile::tool::color_mode;
+  if (value == "auto") {
+    return color_mode::automatic;
+  }
+  if (value == "always") {
+    return color_mode::always;
+  }
+  if (value == "never") {
+    return color_mode::never;
+  }
+  return std::nullopt;
 }
 
 } // namespace
@@ -35,9 +53,11 @@ void usage(std::ostream& output) {
 int main(int argc, char** argv) {
   pkgreconcile::tool::run_options options;
 
+  constexpr int color_option = 1000;
   static const option long_options[] = {
       {"root", required_argument, nullptr, 'r'},
       {"dry-run", no_argument, nullptr, 'n'},
+      {"color", required_argument, nullptr, color_option},
       {"version", no_argument, nullptr, 'v'},
       {"help", no_argument, nullptr, 'h'},
       {nullptr, 0, nullptr, 0},
@@ -57,6 +77,16 @@ int main(int argc, char** argv) {
     case 'n':
       options.dry_run = true;
       break;
+    case color_option: {
+      const auto mode = parse_color_mode(optarg);
+      if (!mode.has_value()) {
+        std::cerr << "rejmerge: invalid color mode: " << optarg << '\n';
+        usage(std::cerr);
+        return 1;
+      }
+      options.color = *mode;
+      break;
+    }
     case 'v':
       std::cout << "rejmerge " << REJMERGE_VERSION << '\n';
       return 0;

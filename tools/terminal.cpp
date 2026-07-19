@@ -10,11 +10,14 @@
 
 #include <liblinediff/liblinediff.h>
 
+#include <cerrno>
 #include <cctype>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
+#include <iterator>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -59,6 +62,11 @@ std::string prompt_line(const std::string& message) {
 std::string environment_or(const char* name, const char* fallback) {
   const char* value = std::getenv(name);
   return value != nullptr && *value != '\0' ? value : fallback;
+}
+
+bool environment_nonempty(const char* name) {
+  const char* value = std::getenv(name);
+  return value != nullptr && *value != '\0';
 }
 
 class temporary_file {
@@ -163,8 +171,9 @@ int run_shell_command(const std::string& command, const fs::path& path) {
   return 1;
 }
 
-void view_text(const std::string& text, const std::string& pager) {
-  if (!::isatty(STDOUT_FILENO)) {
+void view_text(const std::string& text, const std::string& pager,
+               bool use_pager) {
+  if (!use_pager) {
     std::cout << text;
     return;
   }
@@ -275,7 +284,7 @@ bool handle_merge(filesystem_reconciler& core, const candidate& value,
       info("merged " + value.installed_path().string());
       first = false;
     }
-    view_text(file.read(), pager);
+    view_text(file.read(), pager, ::isatty(STDOUT_FILENO));
     if (merged.conflicts != 0) {
       info(std::to_string(merged.conflicts) + " merge conflict(s)");
     }
@@ -301,20 +310,24 @@ bool handle_merge(filesystem_reconciler& core, const candidate& value,
 
 bool handle_regular(filesystem_reconciler& core, const candidate& value,
                     metadata_source source, const std::string& pager,
-                    const std::string& editor, run_summary& summary) {
+                    const std::string& editor, color_mode mode,
+                    bool no_color, run_summary& summary) {
+  const bool use_pager = ::isatty(STDOUT_FILENO);
   std::string difference;
   if (value.text_mergeable()) {
     linediff::unified_options render_options;
     render_options.old_label = value.installed_path().string();
     render_options.new_label = value.staged_path().string();
-    difference =
-        linediff::render_unified(core.compare_text(value), render_options);
+    const bool color = color_enabled(
+        mode, color_context{use_pager, use_pager, no_color});
+    difference = render_unified_display(
+        core.compare_text(value), render_options, color);
   } else {
     difference = "Binary files differ: " + value.installed_path().string() +
                  " " + value.staged_path().string() + "\n";
   }
   for (;;) {
-    view_text(difference, pager);
+    view_text(difference, pager, use_pager);
     const char choice = value.text_mergeable()
                             ? prompt("[K]eep [U]pgrade [M]erge [D]iff [S]kip? ")
                             : prompt("[K]eep [U]pgrade [D]iff [S]kip? ");
@@ -365,7 +378,8 @@ bool handle_simple(filesystem_reconciler& core, const candidate& value,
   }
 }
 
-void show_dry_run(filesystem_reconciler& core, const candidate& value) {
+void show_dry_run(filesystem_reconciler& core, const candidate& value,
+                  color_mode mode, bool no_color) {
   show_entry(value);
   if (value.installed_metadata().type == node_type::regular &&
       value.staged_metadata().type == node_type::regular &&
@@ -374,8 +388,10 @@ void show_dry_run(filesystem_reconciler& core, const candidate& value) {
       linediff::unified_options render_options;
       render_options.old_label = value.installed_path().string();
       render_options.new_label = value.staged_path().string();
-      std::cout << linediff::render_unified(core.compare_text(value),
-                                            render_options);
+      const bool color = color_enabled(
+          mode, color_context{::isatty(STDOUT_FILENO) != 0, false, no_color});
+      std::cout << render_unified_display(
+          core.compare_text(value), render_options, color);
     } else {
       std::cout << "Binary files differ: " << value.installed_path().string()
                 << ' ' << value.staged_path().string() << '\n';
@@ -405,12 +421,13 @@ run_summary run_terminal(const run_options& options) {
   const std::string editor =
       options.editor.empty() ? environment_or("VISUAL", fallback_editor.c_str())
                              : options.editor;
+  const bool no_color = environment_nonempty("NO_COLOR");
 
   for (const auto& value : entries) {
     ++summary.inspected;
 
     if (options.dry_run) {
-      show_dry_run(core, value);
+      show_dry_run(core, value, options.color, no_color);
       continue;
     }
 
@@ -434,7 +451,8 @@ run_summary run_terminal(const run_options& options) {
 
     if (value.installed_metadata().type == node_type::regular &&
         value.staged_metadata().type == node_type::regular) {
-      handle_regular(core, value, source, pager, editor, summary);
+      handle_regular(core, value, source, pager, editor, options.color,
+                     no_color, summary);
     } else {
       handle_simple(core, value, source, summary);
     }

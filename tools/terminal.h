@@ -9,11 +9,14 @@
 
 #include <libpkgreconcile/libpkgreconcile.h>
 
+#include "color.h"
+
 namespace pkgreconcile::tool {
 
 struct run_options {
   filesystem_options filesystem;
   bool dry_run{false};
+  color_mode color{color_mode::automatic};
   std::string editor;
   std::string pager;
 };
